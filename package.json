@@ -1,7 +1,7 @@
 {
-  "name": "your-game-api",
+  "name": "book-duel-api",
   "version": "1.0.0",
-  "description": "CHANGE_ME - one sentence about your game (CS 313 Software Engineering 1)",
+  "description": "Book Duel is a multiplayer trivia game where players answer questions, earn points, and manage their HP to outlast their opponents and become the last player standing.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -19,7 +19,7 @@
   "engines": {
     "node": ">=22"
   },
-  "author": "CHANGE_ME - your full name",
+  "author": "Zirek Ryle D. Gernale",
   "license": "ISC",
   "dependencies": {
     "dotenv": "^18.0.7",
