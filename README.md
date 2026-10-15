@@ -1,9 +1,9 @@
-# [Your Game Title] API
+# Book Duel API
 
-Backend API for Book Del, a tournament game for the SorSU Bulan Campus library.
+Backend API for Book Duel, a tournament game for the SorSU Bulan Campus library.
 CS 313 Software Engineering 1, A.Y. 2026-2027.
 
-- Developer: Zirek Ryle D. Gernale rylezy, BSCS 3-1
+- Developer: Zirek Ryle D. Gernale (GitHub: rylezy), BSCS 3-1
 - Group and game concept: Group 1
 
 This is my own build of my group's game concept. Every commit in this repository was made by me, with Git, on my own computer or in my own Codespace.
@@ -22,6 +22,7 @@ This is my own build of my group's game concept. Every commit in this repository
 ```
 git clone https://github.com/rylezy/book-duel-api.git
 cd %USERPROFILE%\Documents
+cd book-duel-api
 npm install
 ```
 
@@ -60,7 +61,7 @@ Base URL: `http://localhost:3001/api/v1`
 
 ## What "completed" means in my game
 
-A player is considered to have completed a game when the game ends and their final result is recorded, whether they win or lose.
+A player completed the game if they submitted a choice in every non-voided round of that game. A player who was eliminated early, or who skipped a round, is not completed.
 
 ## Tables
 
