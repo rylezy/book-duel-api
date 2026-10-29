@@ -10,10 +10,11 @@ const sequelize = new Sequelize(
 );
 
 const Session = require('./session')(sequelize, DataTypes);
-
+const User = require('./user')(sequelize, DataTypes);
 module.exports = {
   sequelize,
   Sequelize,
   DataTypes,
   Session,
+  User
 };
