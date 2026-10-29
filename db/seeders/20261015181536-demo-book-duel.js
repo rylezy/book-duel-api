@@ -18,6 +18,7 @@ module.exports = {
       { school_id: '2099-1003', username: 'player_three', email: 'player.three@bookduel.test', password_hash: HASH, role: 'player', full_name: 'Player Three' },
       { school_id: '2099-1004', username: 'player_four', email: 'player.four@bookduel.test', password_hash: HASH, role: 'player', full_name: 'Player Four' },
       { school_id: '2099-1005', username: 'never_joined', email: 'never.joined@bookduel.test', password_hash: HASH, role: 'player', full_name: 'Never Joined' },
+      { school_id: '2099-0002', username: 'host_two', email: 'host.two@bookduel.test', password_hash: HASH, role: 'host', full_name: 'Demo Host 2' },
     ]);
     const userId = (sid) => id('SELECT user_id AS id FROM users WHERE school_id = :sid', { sid });
     const hostId = await userId('2099-0001');
