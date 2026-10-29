@@ -33,14 +33,20 @@ async function findFinishedGamePlayers(since) {
   const sql = `
     SELECT s.join_code AS session_code, s.started_at, s.ended_at,
            u.school_id, p.nickname, p.score,
-           (SELECT COUNT(*) FROM answers a
-              JOIN rounds r ON r.round_id = a.round_id
-             WHERE a.session_player_id = p.session_player_id
-               AND a.choice_id IS NOT NULL
-               AND r.is_voided = false)
-           = (SELECT COUNT(*) FROM rounds r2
-               WHERE r2.session_id = s.session_id
-                 AND r2.is_voided = false) AS completed
+                       (
+             (SELECT COUNT(*) FROM rounds r3
+               WHERE r3.session_id = s.session_id
+                 AND r3.is_voided = false) > 0
+             AND
+             (SELECT COUNT(*) FROM answers a
+                JOIN rounds r ON r.round_id = a.round_id
+               WHERE a.session_player_id = p.session_player_id
+                 AND a.choice_id IS NOT NULL
+                 AND r.is_voided = false)
+             = (SELECT COUNT(*) FROM rounds r2
+                 WHERE r2.session_id = s.session_id
+                   AND r2.is_voided = false)
+           ) AS completed   
       FROM sessions s
       JOIN session_players p ON p.session_id = s.session_id
       JOIN users u ON u.user_id = p.user_id
