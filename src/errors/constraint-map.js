@@ -27,4 +27,3 @@ module.exports = {
     message: 'That nickname is already used in this game.',
   },
 };
-module.exports = {};
