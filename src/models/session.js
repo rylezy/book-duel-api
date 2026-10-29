@@ -29,10 +29,7 @@ module.exports = (sequelize, DataTypes) => sequelize.define(
       type: DataTypes.STRING(25),
       allowNull: true,
     },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
+    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     started_at: {
       type: DataTypes.DATE,
       allowNull: true,
