@@ -17,6 +17,7 @@ router.use('/auth', require('./auth.routes'));
 // Read the caller's token once for the remaining modules.
 router.use(currentUser);
 
+router.use('/users', require('./user.routes'));
 router.use('/question-sets', require('./question-set.routes'));
 router.use('/sessions', require('./session.routes'));
 
