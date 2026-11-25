@@ -1,13 +1,23 @@
-# dependencies - anyone can rebuild these with "npm install"
+# Dependencies
 node_modules/
 
-# secrets - never commit real passwords
+# Private environment settings
 .env
 
-# editor and OS noise
+# Test coverage
+coverage/
+
+# Uploaded files; preserve empty folders
+uploads/*/*
+!uploads/*/.gitkeep
+
+# Backup archives
+*.zip
+
+# Editor and operating-system files
 .vscode/
 .DS_Store
 Thumbs.db
 
-# logs
+# Logs
 *.log

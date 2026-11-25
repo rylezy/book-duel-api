@@ -134,3 +134,11 @@ Validation errors also include a `details` list.
 ## Tests
 
 The Postman collection is in `/postman`. Run `npm run db:reset`, then run the collection.
+
+## Tests
+| School ID | Role |
+|---|---|
+| `2099-9000` | ADMIN |
+| `2099-0001` | HOST |
+| `2099-0002` | HOST |
+| `2099-1001` through `2099-1005` | PLAYER |

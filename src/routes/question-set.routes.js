@@ -6,7 +6,7 @@ const controller = require('../controllers/question-set.controller');
 
 const router = Router();
 
-router.use(requireUser('host'));
+router.use(requireUser('HOST'));
 
 router.get('/', controller.list);
 router.post('/', rules.createRules, validate, controller.create);
