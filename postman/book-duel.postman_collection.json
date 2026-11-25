@@ -1,0 +1,1306 @@
+{
+  "info": {
+    "_postman_id": "43c70573-99b6-4d09-bc2b-abb854f199d5",
+    "name": "Book Duel API - Authentication and Existing Modules",
+    "description": "Run the complete collection in order after npm run db:reset. Login requests save tokens automatically. Each request name starts with its expected HTTP status; failing cases end with the expected error code. Collection-level scripts assert these expectations and check that password fields are absent. Uses the current account, question-set, session and player endpoints. Full gameplay will be added later.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{hostToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "demoPassword",
+      "value": "BookDuel-Demo-2026",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const usedCodes = ['482613'].concat(['sessionCode','gameA','gameB'].map(key => String(pm.collectionVariables.get(key))));",
+          "let absentCode = 999999;",
+          "while (usedCodes.includes(String(absentCode))) absentCode--;",
+          "pm.collectionVariables.set('missingCode', String(absentCode));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const expectedParts = pm.info.requestName.split(' | ');",
+          "const expectedStatus = Number(expectedParts[0]);",
+          "pm.test('HTTP ' + expectedStatus, () => pm.response.to.have.status(expectedStatus));",
+          "if (expectedStatus !== 204) {",
+          "  const responseBody = pm.response.json();",
+          "  if (expectedStatus >= 400) {",
+          "    pm.test('Specific error code', () => pm.expect(responseBody.error.code).to.eql(expectedParts[2]));",
+          "    pm.test('Readable error without stack trace', () => pm.expect(typeof responseBody.error.message === 'string' && responseBody.error.message.length > 0 && !Object.prototype.hasOwnProperty.call(responseBody, 'stack') && !Object.prototype.hasOwnProperty.call(responseBody.error, 'stack')).to.eql(true));",
+          "  }",
+          "  function containsPasswordField(value) {",
+          "    return value !== null && typeof value === 'object' && Object.keys(value).some(key => key === 'password' || key === 'password_hash' || containsPasswordField(value[key]));",
+          "  }",
+          "  pm.test('No password fields returned', () => pm.expect(containsPasswordField(responseBody)).to.eql(false));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Log in - run this folder first",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "200 | L01 Log in administrator",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-9000\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const runId = Date.now() + '-' + Math.floor(Math.random() * 1000000);",
+                  "const suffix = 3000 + Math.floor(Math.random() * 5000);",
+                  "pm.collectionVariables.set('runId', runId);",
+                  "pm.collectionVariables.set('newSchoolId', '2099-' + suffix);",
+                  "pm.collectionVariables.set('newSchoolId2', '2099-' + (suffix + 1));",
+                  "pm.collectionVariables.set('newSchoolId3', '2099-' + (suffix + 2));",
+                  "pm.collectionVariables.set('newEmail', 'reader.' + runId + '@bookduel.test');",
+                  "['adminToken','hostToken','otherHostToken','playerToken','secondPlayerToken','registeredToken','tamperedToken','adminId','hostId','registeredUserId','setId','sessionSetId','sessionCode','gameA','gameB','seatId','seatScore','seatHp','wrongLoginError'].forEach(key => pm.collectionVariables.unset(key));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const loginData = pm.response.json();",
+                  "pm.test('Bearer JWT returned', () => pm.expect(loginData.token_type === 'Bearer' && typeof loginData.token === 'string' && loginData.token.split('.').length === 3).to.eql(true));",
+                  "pm.test('Expected account and role', () => pm.expect(loginData.user.school_id === '2099-9000' && loginData.user.role === 'ADMIN').to.eql(true));",
+                  "pm.collectionVariables.set('adminToken', loginData.token);",
+                  "pm.collectionVariables.set('adminId', loginData.user.user_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | L02 Log in host",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-0001\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const loginData = pm.response.json();",
+                  "pm.test('Bearer JWT returned', () => pm.expect(loginData.token_type === 'Bearer' && typeof loginData.token === 'string' && loginData.token.split('.').length === 3).to.eql(true));",
+                  "pm.test('Expected account and role', () => pm.expect(loginData.user.school_id === '2099-0001' && loginData.user.role === 'HOST').to.eql(true));",
+                  "pm.collectionVariables.set('hostToken', loginData.token);",
+                  "pm.collectionVariables.set('hostId', loginData.user.user_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | L03 Log in second host",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-0002\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const loginData = pm.response.json();",
+                  "pm.test('Bearer JWT returned', () => pm.expect(loginData.token_type === 'Bearer' && typeof loginData.token === 'string' && loginData.token.split('.').length === 3).to.eql(true));",
+                  "pm.test('Expected account and role', () => pm.expect(loginData.user.school_id === '2099-0002' && loginData.user.role === 'HOST').to.eql(true));",
+                  "pm.collectionVariables.set('otherHostToken', loginData.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | L04 Log in player",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-1005\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const loginData = pm.response.json();",
+                  "pm.test('Bearer JWT returned', () => pm.expect(loginData.token_type === 'Bearer' && typeof loginData.token === 'string' && loginData.token.split('.').length === 3).to.eql(true));",
+                  "pm.test('Expected account and role', () => pm.expect(loginData.user.school_id === '2099-1005' && loginData.user.role === 'PLAYER').to.eql(true));",
+                  "pm.collectionVariables.set('playerToken', loginData.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | L05 Log in second player",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-1002\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const loginData = pm.response.json();",
+                  "pm.test('Bearer JWT returned', () => pm.expect(loginData.token_type === 'Bearer' && typeof loginData.token === 'string' && loginData.token.split('.').length === 3).to.eql(true));",
+                  "pm.test('Expected account and role', () => pm.expect(loginData.user.school_id === '2099-1002' && loginData.user.role === 'PLAYER').to.eql(true));",
+                  "pm.collectionVariables.set('secondPlayerToken', loginData.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Accounts and permissions",
+      "auth": {"type": "noauth"},
+      "item": [
+        {
+          "name": "201 | A01 Register ignores requested ADMIN role",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"{{newSchoolId}}\",\"full_name\":\"Demo Reader\",\"email\":\"{{newEmail}}\",\"password\":\"{{demoPassword}}\",\"role\":\"ADMIN\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Registered account is PLAYER', () => pm.expect(b.user.role).to.eql('PLAYER'));",
+                  "pm.collectionVariables.set('registeredUserId', pm.response.json().user.user_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 | A02 Duplicate school ID | SCHOOL_ID_TAKEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"{{newSchoolId}}\",\"full_name\":\"Demo Reader\",\"email\":\"duplicate.id.{{runId}}@bookduel.test\",\"password\":\"{{demoPassword}}\",\"role\":\"ADMIN\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "409 | A03 Duplicate email | EMAIL_TAKEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"{{newSchoolId2}}\",\"full_name\":\"Demo Reader\",\"email\":\"{{newEmail}}\",\"password\":\"{{demoPassword}}\",\"role\":\"ADMIN\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "400 | A04 Weak password | VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"{{newSchoolId3}}\",\"full_name\":\"Demo Reader\",\"email\":\"weak.{{runId}}@bookduel.test\",\"password\":\"abc\",\"role\":\"ADMIN\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "401 | A05 Wrong password | INVALID_CREDENTIALS",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-0001\",\"password\":\"Wrong-Pass-2026\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('wrongLoginError', JSON.stringify(pm.response.json().error));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 | A06 Unknown account has the same login error | INVALID_CREDENTIALS",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"2099-9999\",\"password\":\"Wrong-Pass-2026\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login failures are identical', () => pm.expect(pm.response.json().error).to.eql(JSON.parse(pm.collectionVariables.get('wrongLoginError'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | A07 Log in registered player",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"school_id\":\"{{newSchoolId}}\",\"password\":\"{{demoPassword}}\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Registered player receives a Bearer JWT', () => pm.expect(b.token_type === 'Bearer' && typeof b.token === 'string' && b.token.split('.').length === 3 && b.user.role === 'PLAYER').to.eql(true));",
+                  "pm.collectionVariables.set('registeredToken', b.token);",
+                  "const jwtParts = b.token.split('.');",
+                  "jwtParts[2] = (jwtParts[2][0] === 'A' ? 'B' : 'A') + jwtParts[2].slice(1);",
+                  "pm.collectionVariables.set('tamperedToken', jwtParts.join('.'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | A08 Read own account",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{registeredToken}}", "type": "string"}]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Correct player account', () => pm.expect(b.user.user_id === Number(pm.collectionVariables.get('registeredUserId')) && b.user.role === 'PLAYER').to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 | A09 Me without a token | AUTH_REQUIRED",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {"type": "noauth"}
+          }
+        },
+        {
+          "name": "401 | A10 Me with a changed token | INVALID_TOKEN",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{tamperedToken}}", "type": "string"}]
+            }
+          }
+        },
+        {
+          "name": "401 | A11 Old demo header is rejected | AUTH_REQUIRED",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "X-Demo-User", "value": "2099-0001"}]
+          }
+        },
+        {
+          "name": "403 | A12 Player cannot list accounts | FORBIDDEN",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{playerToken}}", "type": "string"}]
+            }
+          }
+        },
+        {
+          "name": "403 | A13 Host cannot list accounts | FORBIDDEN",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            }
+          }
+        },
+        {
+          "name": "200 | A14 Admin lists accounts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Account list includes the registered user', () => pm.expect(Array.isArray(b) && b.some(user => user.user_id === Number(pm.collectionVariables.get('registeredUserId')))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 | A15 Permissions run before validation | FORBIDDEN",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/not-an-id/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{playerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"OWNER\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "409 | A16 Admin cannot change own role | CANNOT_CHANGE_OWN_ROLE",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{adminId}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"PLAYER\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "400 | A17 Admin sends invalid role | VALIDATION_FAILED",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{registeredUserId}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"OWNER\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "404 | A18 Admin changes missing user | USER_NOT_FOUND",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/2147483647/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"HOST\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | A19 Admin promotes registered player",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{registeredUserId}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"HOST\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Role changed to HOST', () => pm.expect(pm.response.json().user.role).to.eql('HOST'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | A20 Existing token sees new HOST role",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{registeredToken}}", "type": "string"}]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Fresh role read from database', () => pm.expect(pm.response.json().user.role).to.eql('HOST'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | A21 Admin restores PLAYER role",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{registeredUserId}}/role",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{adminToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"role\":\"PLAYER\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Role restored to PLAYER', () => pm.expect(pm.response.json().user.role).to.eql('PLAYER'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | A22 Existing token sees restored PLAYER role",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{registeredToken}}", "type": "string"}]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Updated role applies without a new token', () => pm.expect(pm.response.json().user.role).to.eql('PLAYER'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Question sets",
+      "item": [
+        {
+          "name": "201 | Q01 Create question set",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Philippine Literature\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('setId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 | Q02 Invalid title | VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"ab\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "400 | Q03 Broken JSON | INVALID_JSON",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"ab\"",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "401 | Q04 Create without a token | AUTH_REQUIRED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Philippine Literature\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "403 | Q05 Player cannot create a set | FORBIDDEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{playerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Philippine Literature\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "201 | Q06 Client cannot choose host ID",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Owner field test\",\"host_id\":99}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Owner is the logged-in host', () => pm.expect(pm.response.json().host_id).to.eql(Number(pm.collectionVariables.get('hostId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 | Q07 Another host cannot edit set | FORBIDDEN",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/question-sets/{{setId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{otherHostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Hijack\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "404 | Q08 Missing question set | QUESTION_SET_NOT_FOUND",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/question-sets/2147483647"
+          }
+        },
+        {
+          "name": "204 | Q09 Delete own unused set",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/question-sets/{{setId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Sessions",
+      "item": [
+        {
+          "name": "201 | S01 Create set for session tests",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/question-sets",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Session test set\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('sessionSetId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "201 | S02 Create session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":{{sessionSetId}}}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Waiting session with six-digit code', () => pm.expect(b.status === 'waiting' && /^[1-9][0-9]{5}$/.test(b.code)).to.eql(true));",
+                  "pm.collectionVariables.set('sessionCode', pm.response.json().code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 | S03 Invalid question set ID | VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":\"x\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "403 | S04 Another host cannot use the set | FORBIDDEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{otherHostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":{{sessionSetId}}}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "403 | S05 Player cannot create a session | FORBIDDEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{playerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":{{sessionSetId}}}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | S06 Read session without login",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/sessions/{{sessionCode}}",
+            "auth": {"type": "noauth"}
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session code matches', () => pm.expect(pm.response.json().code).to.eql(pm.collectionVariables.get('sessionCode')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | S07 Start session",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{sessionCode}}",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"playing\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Session is playing', () => pm.expect(pm.response.json().status).to.eql('playing'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 | S08 Cannot start twice | SESSION_NOT_JOINABLE",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{sessionCode}}",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"playing\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | S09 Close session",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{sessionCode}}",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"ended\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Session ended by host', () => pm.expect(b.status === 'ended' && b.end_reason === 'host_ended').to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 | S10 Missing session | SESSION_NOT_FOUND",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/sessions/{{missingCode}}",
+            "auth": {"type": "noauth"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Players",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{playerToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "201 | P01 Create game A",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":{{sessionSetId}}}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('gameA', pm.response.json().code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "201 | P02 Join game A",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Bea\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('New seat created', () => pm.expect(b.rejoined).to.eql(false));",
+                  "pm.collectionVariables.set('seatId', b.player_id);",
+                  "pm.collectionVariables.set('seatScore', b.score);",
+                  "pm.collectionVariables.set('seatHp', b.hp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | P03 Rejoin returns same seat",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Bea\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Seat and progress preserved', () => pm.expect(b.rejoined === true && b.player_id === Number(pm.collectionVariables.get('seatId')) && b.score === Number(pm.collectionVariables.get('seatScore')) && b.hp === Number(pm.collectionVariables.get('seatHp'))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 | P04 Nickname already taken | NICKNAME_TAKEN",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{secondPlayerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Bea\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "400 | P05 Invalid nickname | VALIDATION_FAILED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"a\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "401 | P06 Join without a token | AUTH_REQUIRED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "auth": {"type": "noauth"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Reader Two\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | P07 List players without login",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "auth": {"type": "noauth"}
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Only one seat exists', () => pm.expect(Array.isArray(b) && b.length === 1 && b[0].player_id === Number(pm.collectionVariables.get('seatId'))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 | P08 Start game A",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{gameA}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"playing\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "201 | P09 Create game B",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question_set_id\":{{sessionSetId}}}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('gameB', pm.response.json().code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 | P10 One active game per player | ALREADY_IN_GAME",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameB}}/players",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Bea\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | P11 Rejoin running game",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Bea\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('Running game preserves the seat', () => pm.expect(b.rejoined === true && b.player_id === Number(pm.collectionVariables.get('seatId')) && b.score === Number(pm.collectionVariables.get('seatScore'))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 | P12 New player cannot join started game | SESSION_NOT_JOINABLE",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{secondPlayerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Reader Two\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | P13 Close game A",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{gameA}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"ended\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "409 | P14 New player cannot join ended game | SESSION_ENDED",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{gameA}}/players",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{secondPlayerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Reader Two\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "404 | P15 Cannot join missing game | SESSION_NOT_FOUND",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/sessions/{{missingCode}}/players",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{secondPlayerToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"nickname\":\"Reader Two\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        },
+        {
+          "name": "200 | P16 Close unused game B",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/sessions/{{gameB}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{hostToken}}", "type": "string"}]
+            },
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"ended\"}",
+              "options": {"raw": {"language": "json"}}
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
