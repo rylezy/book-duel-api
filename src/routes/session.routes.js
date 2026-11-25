@@ -9,10 +9,10 @@ const playerController = require('../controllers/player.controller');
 
 const router = Router();
 
-router.post('/', requireUser('host'),
+router.post('/', requireUser('HOST'),
   rules.createRules, validate, sessionController.create);
 router.get('/:code', rules.codeParam, validate, sessionController.get);
-router.patch('/:code', requireUser('host'),
+router.patch('/:code', requireUser('HOST'),
   rules.statusRules, validate, sessionController.changeStatus);
 
 // Players are part of a game, so their URLs sit under it.
