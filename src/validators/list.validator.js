@@ -1,18 +1,38 @@
-// Shared rules for ?page and ?limit on every list endpoint.
+'use strict';
+
 const { query } = require('express-validator');
 
+function queryText(field) {
+  return query(field)
+    .optional()
+    .isString()
+    .withMessage(`${field} must be a single text value`).bail()
+    .not().contains('\0')
+    .withMessage(`${field} must not contain null characters`).bail();
+}
+
 const pageRules = [
-  query('page').optional().isInt({ min: 1 }).withMessage('page must be a whole number from 1').toInt(),
-  query('limit').optional().isInt({ min: 1, max: 50 }).withMessage('limit must be 1 to 50').toInt(),
+  queryText('page')
+    .isInt({ min: 1, max: 2147483647 })
+    .withMessage('page must be 1 to 2147483647').bail()
+    .toInt(),
+
+  queryText('limit')
+    .isInt({ min: 1, max: 50 })
+    .withMessage('limit must be 1 to 50').bail()
+    .toInt(),
 ];
 
-// sort may only name a column on this list, so nobody can sort by password_hash
-// or inject SQL through the URL.
 function sortRules(columns) {
   return [
-    query('sort').optional().isIn(columns).withMessage(`sort must be one of: ${columns.join(', ')}`),
-    query('order').optional().isIn(['asc', 'desc']).withMessage('order must be asc or desc'),
+    queryText('sort')
+      .isIn(columns)
+      .withMessage(`sort must be one of: ${columns.join(', ')}`),
+
+    queryText('order')
+      .isIn(['asc', 'desc'])
+      .withMessage('order must be asc or desc'),
   ];
 }
 
-module.exports = { pageRules, sortRules };
+module.exports = { pageRules, sortRules, queryText };

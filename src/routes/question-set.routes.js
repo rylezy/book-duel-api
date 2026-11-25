@@ -8,7 +8,12 @@ const router = Router();
 
 router.use(requireUser('HOST'));
 
-router.get('/', controller.list);
+router.get(
+  '/',
+  rules.listRules,
+  validate,
+  controller.list
+);
 router.post('/', rules.createRules, validate, controller.create);
 router.get('/:id', rules.idParam, validate, controller.get);
 router.patch('/:id', rules.updateRules, validate, controller.update);

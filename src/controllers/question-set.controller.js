@@ -1,5 +1,6 @@
 const { matchedData } = require('express-validator');
 const service = require('../services/question-set.service');
+const { envelope } = require('../utils/paginate');
 
 function toJson(q) {
   return {
@@ -14,8 +15,18 @@ function toJson(q) {
 }
 
 async function list(req, res) {
-  const sets = await service.list(req.user);
-  res.json(sets.map(toJson));
+  const options = matchedData(req, {
+    locations: ['query'],
+  });
+
+  const { rows, count } = await service.list(
+    req.user,
+    options
+  );
+
+  res.json(
+    envelope(rows.map(toJson), count, options)
+  );
 }
 
 async function create(req, res) {

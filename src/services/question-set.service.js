@@ -18,7 +18,8 @@ async function findOwned(id, user) {
   return questionSet;
 }
 
-const list = (user) => repo.findAllByHost(user.user_id);
+const list = (user, options = {}) =>
+  repo.findAllByHost(user.user_id, options);
 
 // Rule: the owner is the caller. A client never chooses it.
 const create = (data, user) => repo.create({ ...data, host_id: user.user_id });
