@@ -11,6 +11,16 @@
 //
 // A constraint that is not listed here still answers 409, with the code CONFLICT.
 module.exports = {
+    uq_user_school_id: {
+    status: 409,
+    code: 'SCHOOL_ID_TAKEN',
+    message: 'That school ID is already registered.',
+  },
+  uq_user_email: {
+    status: 409,
+    code: 'EMAIL_TAKEN',
+    message: 'That email address is already registered.',
+  },
   uq_session_join_code: {
     status: 409,
     code: 'JOIN_CODE_TAKEN',
